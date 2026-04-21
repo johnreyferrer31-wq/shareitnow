@@ -1,0 +1,8 @@
+{
+  "name": "ShareItNow",
+  "description": "A mobile-first social photo sharing application. Users can upload photos with captions, view a real-time feed, like and comment on posts, and manage their own profile.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": []
+}

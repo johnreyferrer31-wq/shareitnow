@@ -1,0 +1,171 @@
+{
+  "entities": {
+    "Post": {
+      "title": "Post",
+      "description": "A photo shared by a user with a caption.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The UID of the user who posted." },
+        "userName": { "type": "string", "description": "Display name of the author." },
+        "userPhotoURL": { "type": "string", "description": "Profile picture URL of the author." },
+        "imageUrl": { "type": "string", "description": "The base64 encoded photo or image URL." },
+        "caption": { "type": "string", "description": "Short description of the photo." },
+        "likesCount": { "type": "number", "description": "Computed count of likes." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp of creation." }
+      },
+      "required": ["userId", "userName", "imageUrl", "caption", "likesCount", "createdAt"]
+    },
+    "Like": {
+      "title": "Like",
+      "description": "A like record for a post.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The UID of the user who liked." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp of the like." }
+      },
+      "required": ["userId", "createdAt"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "A comment on a post.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The UID of the commenter." },
+        "userName": { "type": "string", "description": "Display name of the commenter." },
+        "text": { "type": "string", "description": "Comment content." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp." }
+      },
+      "required": ["userId", "userName", "text", "createdAt"]
+    },
+    "User": {
+      "title": "User Profile",
+      "description": "Metadata for a user, including custom profile pictures and counts.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The UID of the user." },
+        "displayName": { "type": "string", "description": "The user's display name." },
+        "username": { "type": "string", "description": "Unique user handle." },
+        "customPhotoURL": { "type": "string", "description": "Base64 encoded custom profile picture." },
+        "followersCount": { "type": "number", "description": "Count of users following this user." },
+        "followingCount": { "type": "number", "description": "Count of users this user follows." },
+        "isPrivate": { "type": "boolean", "description": "Whether the user's profile is private." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp." }
+      },
+      "required": ["userId", "displayName", "updatedAt"]
+    },
+    "Follow": {
+      "title": "Follow Relationship",
+      "description": "Represents a follow connection between two users.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The UID of the other user." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp." }
+      },
+      "required": ["uid", "createdAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "A notification for a user activity.",
+      "type": "object",
+      "properties": {
+        "fromId": { "type": "string", "description": "The UID of the user who triggered the notification." },
+        "fromName": { "type": "string", "description": "Display name of the user who triggered it." },
+        "type": { "type": "string", "enum": ["follow", "follow_request", "like", "comment"], "description": "Type of event." },
+        "read": { "type": "boolean", "description": "Whether the notification has been seen." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp." }
+      },
+      "required": ["fromId", "fromName", "type", "read", "createdAt"]
+    },
+    "FollowRequest": {
+      "title": "Follow Request",
+      "description": "A pending request to follow a private user.",
+      "type": "object",
+      "properties": {
+        "fromId": { "type": "string", "description": "Requester UID." },
+        "fromName": { "type": "string", "description": "Requester display name." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp." }
+      },
+      "required": ["fromId", "fromName", "createdAt"]
+    },
+    "Conversation": {
+      "title": "Conversation",
+      "description": "A private chat between two users.",
+      "type": "object",
+      "properties": {
+        "participants": { "type": "array", "items": { "type": "string" }, "description": "List of user UIDs." },
+        "lastMessage": { "type": "string", "description": "The text of the last message sent." },
+        "lastMessageAt": { "type": "string", "format": "date-time", "description": "Timestamp of the last message." },
+        "lastSenderId": { "type": "string", "description": "UID of the user who sent the last message." },
+        "readBy": { "type": "array", "items": { "type": "string" }, "description": "List of UIDs who have read the last message." },
+        "participantDetails": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "photo": { "type": "string" }
+            }
+          },
+          "description": "Cached names and photos of participants."
+        },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp." }
+      },
+      "required": ["participants", "updatedAt"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "A single message in a conversation.",
+      "type": "object",
+      "properties": {
+        "fromId": { "type": "string", "description": "Sender UID." },
+        "fromName": { "type": "string", "description": "Sender display name." },
+        "text": { "type": "string", "description": "Message content." },
+        "imageUrl": { "type": "string", "description": "Optional base64 encoded photo or image URL." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp." }
+      },
+      "required": ["fromId", "fromName", "text", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile settings and custom avatars."
+    },
+    "/users/{userId}/followers/{followerId}": {
+      "schema": "Follow",
+      "description": "Users who follow this user."
+    },
+    "/users/{userId}/following/{followedId}": {
+      "schema": "Follow",
+      "description": "Users this user follows."
+    },
+    "/users/{userId}/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "Activity notifications for the user."
+    },
+    "/users/{userId}/requests/{requesterId}": {
+      "schema": "FollowRequest",
+      "description": "Pending follow requests for a private user."
+    },
+    "/conversations/{conversationId}": {
+      "schema": "Conversation",
+      "description": "Private conversation metadata."
+    },
+    "/conversations/{conversationId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Messages within a private conversation."
+    },
+    "/posts/{postId}": {
+      "schema": "Post",
+      "description": "Main collection for user posts."
+    },
+    "/posts/{postId}/likes/{userId}": {
+      "schema": "Like",
+      "description": "Subcollection for likes on a post."
+    },
+    "/posts/{postId}/comments/{commentId}": {
+      "schema": "Comment",
+      "description": "Subcollection for comments on a post."
+    }
+  }
+}
