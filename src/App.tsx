@@ -137,6 +137,20 @@ const PostCard = ({ post, currentUser, customProfiles, customNames, onProfileCli
   const [comments, setComments] = useState<Comment[]>([]);
   const [likers, setLikers] = useState<{ userId: string, userName?: string }[]>([]);
   const [commentText, setCommentText] = useState('');
+  const [showMenu, setShowMenu] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     // Check if user liked
@@ -205,6 +219,22 @@ const PostCard = ({ post, currentUser, customProfiles, customNames, onProfileCli
     }
   };
 
+  const handleDeletePost = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteDoc(doc(db, 'posts', post.id));
+      setShowMenu(false);
+      setShowDeleteConfirm(false);
+      alert('Post deleted successfully');
+    } catch (e: any) {
+      console.error("Delete error:", e);
+      alert(`Error deleting post: ${e.message || 'Unknown error'}`);
+      handleFirestoreError(e, 'delete', `posts/${post.id}`);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
@@ -229,7 +259,58 @@ const PostCard = ({ post, currentUser, customProfiles, customNames, onProfileCli
           <span className="font-bold text-sm text-ink group-hover:text-primary transition-colors">{customNames[post.userId] || post.userName}</span>
           <span className="text-[10px] text-ink-muted">Shared a photo</span>
         </div>
-        <MoreVertical className="w-5 h-5 text-ink-muted ml-auto cursor-pointer" />
+        <div className="ml-auto relative" ref={menuRef}>
+          <MoreVertical 
+            className="w-5 h-5 text-ink-muted cursor-pointer hover:text-primary transition-colors" 
+            onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+          />
+          <AnimatePresence>
+            {showMenu && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                className="absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-2xl shadow-xl z-[60] overflow-hidden"
+              >
+                <div 
+                  className="px-4 py-3 text-xs font-bold text-ink hover:bg-bg cursor-pointer transition-colors flex items-center gap-2"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const url = `${window.location.origin}/post/${post.id}`;
+                    navigator.clipboard.writeText(url);
+                    alert('Post link copied!');
+                    setShowMenu(false);
+                  }}
+                >
+                  <Share2 className="w-3.5 h-3.5 text-primary" />
+                  Copy Post Link
+                </div>
+                {post.userId === currentUser.uid && (
+                  <button 
+                    disabled={isDeleting}
+                    className={`w-full px-4 py-3 text-xs font-bold transition-all flex items-center gap-2 border-t border-border ${showDeleteConfirm ? 'bg-red-500 text-white hover:bg-red-600 font-bold' : 'text-red-500 hover:bg-red-50'}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (showDeleteConfirm) {
+                        handleDeletePost();
+                      } else {
+                        setShowDeleteConfirm(true);
+                      }
+                    }}
+                    onMouseLeave={() => setShowDeleteConfirm(false)}
+                  >
+                    {isDeleting ? (
+                      <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <X className="w-3.5 h-3.5" />
+                    )}
+                    {isDeleting ? 'Deleting...' : (showDeleteConfirm ? 'Confirm Delete?' : 'Delete Post')}
+                  </button>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Image */}
@@ -548,6 +629,7 @@ export default function App() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editName, setEditName] = useState('');
   const [editUsername, setEditUsername] = useState('');
+  const [editBio, setEditBio] = useState('');
   const [saveLoading, setSaveLoading] = useState(false);
 
   // Fetch real-time notifications
@@ -1075,6 +1157,7 @@ export default function App() {
       await updateDoc(doc(db, 'users', user.uid), {
         displayName: editName.trim() || user.displayName,
         username: editUsername.trim().toLowerCase(),
+        bio: editBio.trim(),
         updatedAt: serverTimestamp()
       });
       setIsEditingProfile(false);
@@ -1209,10 +1292,7 @@ export default function App() {
         onClick={handleGoogleAuth}
         className="w-full bg-primary text-bg py-5 rounded-full font-bold text-lg shadow-xl shadow-primary/20 flex items-center justify-center relative transition-all"
       >
-        <div className="absolute left-4 w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-sm">
-          <img src="https://www.gstatic.com/images/branding/googleg/1x/googleg_standard_color_128dp.png" className="w-6 h-6" alt="Google" />
-        </div>
-        <span>Sign in with Google</span>
+        <span>Proceed</span>
       </motion.button>
     </div>
   );
@@ -1463,6 +1543,11 @@ export default function App() {
                     <div className="text-primary font-bold text-[10px] mt-2 uppercase tracking-[0.3em] opacity-80">
                       @{view === 'profile' ? (visitedUserProfile?.username || user.displayName?.replace(/\s+/g, '').toLowerCase()) : (visitedUserProfile?.username || selectedProfile?.name?.replace(/\s+/g, '').toLowerCase())}
                     </div>
+                    {visitedUserProfile?.bio && (
+                      <p className="text-sm text-ink-muted mt-3 px-10 text-center leading-relaxed">
+                        {visitedUserProfile.bio}
+                      </p>
+                    )}
                   </div>
                   
                   {view === 'profile' && (
@@ -1488,6 +1573,7 @@ export default function App() {
                         onClick={() => {
                           setEditName(visitedUserProfile?.displayName || user.displayName || '');
                           setEditUsername(visitedUserProfile?.username || user.displayName?.replace(/\s+/g, '').toLowerCase() || '');
+                          setEditBio(visitedUserProfile?.bio || '');
                           setIsEditingProfile(true);
                         }}
                         className="flex items-center gap-2 px-6 py-2 rounded-2xl bg-surface text-ink border border-border text-[10px] font-bold uppercase tracking-wider hover:border-primary/50 transition-colors"
@@ -1649,7 +1735,7 @@ export default function App() {
           className={`group flex flex-col items-center gap-1 cursor-pointer transition-all ${view === 'feed' ? 'text-primary' : 'text-ink-muted hover:text-white'}`}
         >
           <Home className={`w-6 h-6 ${view === 'feed' ? 'fill-primary' : ''}`} />
-          <span className="text-[9px] font-bold uppercase tracking-widest">Feed</span>
+          <span className="text-[9px] font-bold uppercase tracking-widest">Home</span>
         </motion.div>
         
         <motion.div 
@@ -2085,6 +2171,17 @@ export default function App() {
                       className="w-full bg-bg border border-border rounded-2xl pl-8 pr-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-bold text-ink-muted tracking-widest ml-1 opacity-50">Bio</label>
+                  <textarea
+                    value={editBio}
+                    onChange={(e) => setEditBio(e.target.value)}
+                    placeholder="Tell us about yourself..."
+                    rows={3}
+                    className="w-full bg-bg border border-border rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors text-ink resize-none"
+                  />
                 </div>
 
                 <button
