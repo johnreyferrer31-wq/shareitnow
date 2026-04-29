@@ -1241,8 +1241,14 @@ export default function App() {
   }, [user, view]);
 
   if (loading) return (
-    <div className="flex items-center justify-center h-screen bg-bg">
-      <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+    <div className="flex flex-col items-center justify-center h-screen bg-bg">
+      <div className="mb-8 scale-150">
+        <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center animate-pulse">
+          <Camera className="w-8 h-8 text-primary" />
+        </div>
+      </div>
+      <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+      <div className="text-primary font-bold tracking-[0.3em] text-sm animate-pulse">SHAREITNOW</div>
     </div>
   );
 

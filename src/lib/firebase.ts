@@ -7,16 +7,14 @@ import {
   signInWithRedirect,
   getRedirectResult 
 } from 'firebase/auth';
-import { initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
-import firebaseConfig from '../firebase-config.json';
+import { initializeFirestore } from 'firebase/firestore';
+import { firebaseConfig } from './firebase-config';
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// Enable long-polling to bypass potential WebSocket issues in the preview environment
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-}, firebaseConfig.firestoreDatabaseId);
+// Use standard initialization for production
+export const db = initializeFirestore(app, {}, firebaseConfig.firestoreDatabaseId);
 
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
