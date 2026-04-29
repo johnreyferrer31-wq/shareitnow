@@ -2184,6 +2184,17 @@ export default function App() {
                   />
                 </div>
 
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-bold text-ink-muted tracking-widest ml-1 opacity-50">Bio</label>
+                  <textarea
+                    value={editBio}
+                    onChange={(e) => setEditBio(e.target.value)}
+                    placeholder="Tell us about yourself..."
+                    rows={3}
+                    className="w-full bg-bg border border-border rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors text-ink resize-none"
+                  />
+                </div>
+
                 <button
                   type="submit"
                   disabled={saveLoading}
