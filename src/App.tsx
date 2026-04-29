@@ -600,6 +600,7 @@ export default function App() {
   const [view, setView] = useState<'feed' | 'profile' | 'upload' | 'visit'>('feed');
   const [selectedProfile, setSelectedProfile] = useState<{uid: string, name: string} | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [authError, setAuthError] = useState('');
   const [isOffline, setIsOffline] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -1178,15 +1179,25 @@ export default function App() {
     }
   };
 
-  const handleGoogleAuth = async () => {
+  const handleGoogleAuth = async (useRedirect = false) => {
     setAuthError('');
+    setIsLoggingIn(true);
     try {
-      await signInWithGoogle();
-    } catch (error: any) {
-      if (error.code === 'auth/popup-blocked') {
-        setAuthError('POPUP BLOCKED: Please allow popups for this site to login with Google.');
+      if (useRedirect) {
+        await signInWithGoogleRedirect();
       } else {
-        setAuthError(`GOOGLE ERROR: ${error.message}`);
+        await signInWithGoogle();
+      }
+    } catch (error: any) {
+      console.error("Auth Error:", error);
+      setIsLoggingIn(false);
+      if (error.code === 'auth/popup-blocked') {
+        setAuthError('POPUP BLOCKED: Your browser blocked the login window. Please allow popups or try the redirect method below.');
+      } else if (error.code === 'auth/unauthorized-domain') {
+        const domain = window.location.hostname;
+        setAuthError(`DOMAIN NOT AUTHORIZED: The domain "${domain}" is not authorized in your Firebase console. Please add it to "Authentication > Settings > Authorized domains".`);
+      } else {
+        setAuthError(`LOGIN ERROR: ${error.message}`);
       }
     }
   };
@@ -1200,6 +1211,8 @@ export default function App() {
       setUser(u);
       setLoading(false);
       if (u) {
+        setAuthError('');
+        setIsLoggingIn(false);
         // Initialize/Update user profile record on login
         try {
           await setDoc(doc(db, 'users', u.uid), {
@@ -1273,32 +1286,43 @@ export default function App() {
       </div>
 
       {authError && (
-        <div className="mx-2 mb-10 p-5 bg-red-500/10 border border-red-500/30 rounded-3xl text-red-500 text-xs font-medium text-center space-y-3">
+        <div className="mx-2 mb-10 p-5 bg-red-500/10 border border-red-500/30 rounded-3xl text-red-500 text-xs font-medium text-center space-y-4">
           <div className="font-bold uppercase tracking-widest flex items-center justify-center gap-2">
-            <span>⚠️ Login Blocked</span>
+            <span>⚠️ Login Issue</span>
           </div>
           <p className="opacity-90 leading-relaxed">
-            Your browser blocked the Google login window. For the best experience, please **open this app in a new tab** using the button in the top right corner of the preview.
+            {authError}
           </p>
-          <button 
-            onClick={() => {
-              setAuthError('');
-              signInWithGoogleRedirect();
-            }}
-            className="text-primary font-bold underline hover:no-underline transition-all"
-          >
-            Or try login using redirect
-          </button>
+          <div className="flex flex-col gap-2">
+            <button 
+              onClick={() => handleGoogleAuth(true)}
+              disabled={isLoggingIn}
+              className="px-6 py-3 bg-red-500/10 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-red-500/20 transition-all disabled:opacity-50"
+            >
+              Try Login via Redirect
+            </button>
+            <p className="text-[9px] opacity-60">
+              Note: If redirect also fails, ensure your domain is authorized in Firebase Console.
+            </p>
+          </div>
         </div>
       )}
       
       <motion.button 
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        onClick={handleGoogleAuth}
-        className="w-full bg-primary text-bg py-5 rounded-full font-bold text-lg shadow-xl shadow-primary/20 flex items-center justify-center relative transition-all"
+        whileHover={{ scale: isLoggingIn ? 1 : 1.02 }}
+        whileTap={{ scale: isLoggingIn ? 1 : 0.98 }}
+        onClick={() => handleGoogleAuth(false)}
+        disabled={isLoggingIn}
+        className="w-full bg-primary text-bg py-5 rounded-full font-bold text-lg shadow-xl shadow-primary/20 flex items-center justify-center relative transition-all disabled:opacity-70 disabled:cursor-wait"
       >
-        <span>Proceed</span>
+        {isLoggingIn ? (
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-5 border-2 border-bg border-t-transparent rounded-full animate-spin"></div>
+            <span>Connecting...</span>
+          </div>
+        ) : (
+          <span>Proceed</span>
+        )}
       </motion.button>
     </div>
   );
